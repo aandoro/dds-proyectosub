@@ -1,0 +1,39 @@
+<?php
+
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
+
+class CreateAnswersTable extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('answers', function (Blueprint $table) {
+            $table->engine = 'PostgreSQL';
+            $table->bigIncrements('id');
+            $table->double('longitud');
+            $table->double('latitud');
+            $table->date('init_challenge');
+            $table->date('end_challenge');
+            $table->unsignedInteger('challenge_id');
+            $table->foreign('challenge_id')->references('id')->on('challenges')->onDelete('cascade');
+            $table->timestamps();
+            $table->softDeletes(); //borrado logico
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('answers');
+    }
+}

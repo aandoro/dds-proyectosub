@@ -1,0 +1,174 @@
+<template>
+  <div>
+    <div>
+      <v-breadcrumbs :items="items" divider=">"></v-breadcrumbs>
+    </div>
+    <v-toolbar flat color="white">
+      <v-toolbar-title>Desafios</v-toolbar-title>
+      <v-divider class="mx-2" inset vertical></v-divider>
+      <v-spacer></v-spacer>
+      <v-btn color="primary" dark class="mb-2" to="/challenge/new">Nuevo</v-btn>
+    </v-toolbar>
+    <v-data-table :headers="headers" :items="challenges" class="elevation-1">
+      <template v-slot:items="props">
+        <td>{{ props.item.name }}</td>
+        <td class="text-xs-right">{{ props.item.level_id }}</td>
+        <td class="text-xs-right">{{ props.item.category_id }}</td>
+        <td class="justify-center">
+          <router-link :to="'/challenge/view/' + props.item.id">
+            <v-tooltip top>
+              <template v-slot:activator="{ on }">
+                <v-btn icon v-on="on">
+                  <v-icon small class="mr-2">remove_red_eye</v-icon>
+                </v-btn>
+              </template>
+              <span>Visualizar</span>
+            </v-tooltip>
+          </router-link>
+          <router-link :to="'/challenge/' + props.item.id">
+            <v-tooltip top>
+              <template v-slot:activator="{ on }">
+                <v-btn icon v-on="on">
+                  <v-icon small class="mr-2">edit</v-icon>
+                </v-btn>
+              </template>
+              <span>Editar</span>
+            </v-tooltip>
+          </router-link>
+          <v-tooltip top>
+            <template v-slot:activator="{ on }">
+              <v-btn icon v-on="on">
+                <v-icon small @click="OpenDialog(props.item.id)">delete</v-icon>
+              </v-btn>
+            </template>
+            <span>Borrar</span>
+          </v-tooltip>
+        </td>
+      </template>
+      <template v-slot:no-data>
+        <v-btn color="primary" @click="initialize">Recargar</v-btn>
+      </template>
+    </v-data-table>
+
+    <div>
+      <v-layout row justify-center>
+        <v-dialog v-model="dialog" persistent max-width="290">
+          <v-card>
+            <v-card-title class="headline">¿Esta seguro que desea borrar?</v-card-title>
+            <v-card-text></v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="green darken-1" flat @click="dialog = false">Cancelar</v-btn>
+              <v-btn color="green darken-1" flat @click="deleteItem()">Confirmar</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-layout>
+    </div>
+  </div>
+</template>
+
+<script>
+import firebase from "firebase/app";
+import "firebase/database";
+
+export default {
+  data: () => ({
+    items: [
+      {
+        text: "Inicio",
+        disabled: false,
+        href: "#/home"
+      },
+      {
+        text: "Lista de desafios",
+        disabled: true,
+        href: "#/challenges"
+      }
+    ],
+    dialog: false,
+    headers: [
+      { text: "Nombres", value: "name" },
+      { text: "Niveles", value: "level_id" },
+      { text: "Categorias", value: "category_id" },
+      { text: "Actiones", value: "name", sortable: false }
+    ],
+    challenges: [],
+    leveles: [],
+    cateogories: [],
+    challengeId: null,
+    dialog: false,
+    pageCount: 1
+  }),
+
+  created() {
+    this.initialize();
+  },
+
+  methods: {
+    initialize() {
+      firebase
+        .database()
+        .ref("Challenges")
+        .on("value", snapshot => {
+          let challenges = snapshot.val();
+          for (let challenge in challenges) {
+            this.challenges.unshift({
+              id: challenge,
+              name: challenges[challenge].name,
+              description: challenges[challenge].description,
+              point: challenges[challenge].point,
+              picCount: challenges[challenge].picCount,
+              level_id: challenges[challenge].level_id,
+              category_id: challenges[challenge].category_id
+            });
+          }
+        });
+    },
+    saveItems() {
+      this.challenges.forEach(item => {
+        this.leveles.forEach(level => {
+          if (item.level_id == level.id) {
+            item.level_id = level.name;
+          }
+        });
+        this.categories.forEach(category => {
+          if (item.category_id == category.id) {
+            item.category_id = category.name;
+          }
+        });
+      });
+    },
+    OpenDialog(id) {
+      this.dialog = true;
+      this.challengeId = id;
+    },
+    deleteItem(id) {
+      this.dialog = false;
+      firebase
+        .database()
+        .ref("Challenges")
+        .child(this.challengeId)
+        .remove()
+        .then(() => {
+          this.$notify({
+            group: "success",
+            type: "success",
+            title: "BORRADO:",
+            text: "El desafio se borro exitosamente"
+          });
+          this.challenges = [];
+          this.initialize();
+        })
+        .catch(() => {
+          this.$notify({
+            group: "error",
+            type: "error",
+            title: "BORRADO:",
+            text: "Ocurrio un error al querer borrarlo"
+          });
+        });
+    }
+  }
+};
+</script>
